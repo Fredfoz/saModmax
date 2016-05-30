@@ -1,3 +1,81 @@
+#simulated annealing algorithm according to Guimera & Amaral
+callSaIndividualCollectiveMoves <- function(network,initialC=seq(0,0,length.out=vcount(network)),
+                                            beta=vcount(network)/2,alpha=1.005,fixed,numIter){
+
+  if(initialC[1]==0){
+    C <- initialGreedy(network)
+  }
+  else{
+    C <- initialC
+  }
+
+  Q <- calculateQ(network,C)
+  beta_initial <- beta
+
+  C_best <- C
+  Q_best <- Q
+
+  n <- vcount(network)
+  steps <- 0
+
+  while(steps < fixed){
+    #percentage <- steps/fixed*100
+    #(paste(percentage,"%",sep=""))
+    #print(C_best)
+
+    for(a in 1:numIter*n^2){
+      result <- individualNodeMovement(network, C, Q, beta)
+      Q_new <- result[vcount(network)+1]
+      C_new <- result[1:vcount(network)]
+      accepted <- result[vcount(network)+2]
+      if(Q_new > Q_best){
+        Q_best <- Q_new
+        C_best <- C_new
+      }
+      Q <- Q_new
+      C <- C_new
+      if(accepted==0){
+        steps <- steps+1
+      } else{
+        steps <- 0
+      }
+    }
+    for(b in 1:numIter*n){
+      if(max(C)>1){
+        split <- sample(c(0,1),1)
+      }
+      else{
+        split <- 1
+      }
+
+      if(split==0){
+        result <- mergeCommunities(network,C,Q,beta)
+      }
+      else{
+        result <- splitCommunities(network,C,Q,beta_initial,alpha,beta)
+      }
+      Q_new <- result[vcount(network)+1]
+      C_new <- result[1:vcount(network)]
+      accepted <- result[vcount(network)+2]
+      if(Q_new > Q_best){
+        Q_best <- Q_new
+        C_best <- C_new
+      }
+      Q <- Q_new
+      C <- C_new
+      if(accepted==0){
+        steps <- steps+1
+      } else{
+        steps <- 0
+      }
+    }
+    beta = beta*alpha
+  }
+
+  result <- c(C_best, Q_best)
+  return(result)
+}
+
 #simulated annealing algorithm according to Guimera & Amaral. Corrected Version.
 saIndividualCollectiveMovesCorr <- function(adjacency,numRandom=0,initial=c("general","own"),beta=length(adjacency[1,])/2,alpha=1.005,fixed=25,numIter=1.0){
 
